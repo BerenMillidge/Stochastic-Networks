@@ -2,6 +2,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import datetime
 
 
 credential_file = './credentials.txt'
@@ -19,8 +20,28 @@ from_email, password, to_email = credential_string.split(credential_spliter)
 
 log_file = './logs.txt'
 
+# write these as they become necessary
+def format_results_log():
+	pass
+
+def format_exception_log(e):
+	now = datetime.datetime.now()
+	msg = "EXCEPTION: " + str(now) + "\n"
+	msg = msg + str(e) + "\n"
+	return msg
+
+def format_message_string(message):
+	now = datetime.datetime.now()
+	msg = "MESSAGE: " + str(now) + "\n"
+	msg += str(message)
+	return message
+
+
 def log(message):
 	f = open(log_file, 'a+')
+	f.write(message)
+	f.close()
+
 
 
 def send_mail(subject, message):
@@ -37,9 +58,10 @@ def send_mail(subject, message):
 		server.sendmail(me, [to_email], msg.as_string())
 		server.close()
 		print("Message Sent!")
+		log(format_message_string("Email Sent"))
 	except Exception as e:
 		print("Connection failed \n")
 		print(e)
-		# log something here!
+		log(format_exception_log(e))
 
 
