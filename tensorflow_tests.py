@@ -5,6 +5,9 @@
 import tensorflow as tf 
 import numpy as np
 
+# try withthe debuger
+from tensorflow.python import debug as tf_debug
+
 print(tf.__version__)
 
 #dataset = tf.keras.datasets.mnist.load_data()
@@ -87,7 +90,7 @@ def bias_variable(name, shape):
                            dtype=tf.float32,
                            initializer=initial)
 
-def fc_layer(x, num_units, name, use_relu=True):
+def fc_layer(x, num_units, name, use_relu=True, randomize = True, sigma=5):
     """
     Create a fully-connected layer
     :param x: input from previous layer
@@ -99,29 +102,47 @@ def fc_layer(x, num_units, name, use_relu=True):
     in_dim = x.get_shape()[1]
     W = weight_variable(name, shape=[in_dim, num_units])
     b = bias_variable(name, [num_units])
-    layer = tf.matmul(x, W)
+    layer = tf.matmul(x, W, name='Act_' + name)
     layer += b
     if use_relu:
-        layer = tf.nn.relu(layer)
+        layer = tf.nn.relu(layer,name='Act_Relu_' + name)
+    if randomize:
+    	with tf.name_scope('Randomize_' + name):
+    		# multiplies the sigma by the mean so it doesn't just take over... which would be realy annoying, though realistically batch norm should perhaps take care of this!
+    		rand = tf.random_normal([num_units], tf.constant(0, tf.float32), tf.reduce_mean(layer) * tf.constant(sigma, tf.float32), name="randomize")
+    	with tf.name_scope("rand_activations_" + name):
+    		layer = tf.add(rand, layer, name='Randomized_layer_' + name) # hopefully this wll work!
+    		#tf.Print(layer)
     return layer
- 
 
+    # this seems to work which is fantastic... I should adjust the size of sigma to the main thing though!
+
+# try randomizing weights... first I need to actually print out the outputs... somehow!
+# to check that it is actually randomizing... I'm not totally sure how to do this... dagnabbit!
+# this is good... it doesreally seem to hurt except by massively messing up/degrading training, but that's good
+# could easily just adjust it to the average shape of the activations... ugh!
+
+# well... it sort of works... but who knows
+ 
 
 # Create the graph for the linear model
 # Placeholders for inputs (x) and outputs(y)
+#learning_rate = tf.placeholder(tf.float32, shape=[])
+learning_rate = tf.Variable(tf.float32, 0.01)
 x = tf.placeholder(tf.float32, shape=[None, img_size_flat], name='X')
 y = tf.placeholder(tf.float32, shape=[None, n_classes], name='Y')
  
 
-fc1 = fc_layer(x, n_classes, 'FC1', use_relu=True)
-output_logits = fc_layer(fc1, n_classes, 'OUT', use_relu=False)
+fc1 = fc_layer(x, h1, 'FC1', use_relu=True)
+output_logits = fc_layer(fc1, n_classes, 'OUT', use_relu=False, randomize = False)
 
 # Network predictions
 cls_prediction = tf.argmax(output_logits, axis=1, name='predictions')
 
 # Define the loss function, optimizer, and accuracy
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=output_logits), name='loss')
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op').minimize(loss)
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op')
+train_step = optimizer.minimize(loss)
 correct_prediction = tf.equal(tf.argmax(output_logits, 1), tf.argmax(y, 1), name='correct_pred')
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
  
@@ -129,6 +150,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accurac
 init = tf.global_variables_initializer()
  
 sess = tf.InteractiveSession()
+sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 sess.run(init)
 global_step = 0
 # Number of training iterations in each epoch
@@ -143,9 +165,27 @@ for epoch in range(epochs):
         x_batch, y_batch = get_next_batch(x_train, y_train, start, end)
 
         # Run optimization op (backprop)
-        feed_dict_batch = {x: x_batch, y: y_batch}
-        sess.run(optimizer, feed_dict=feed_dict_batch)
-
+        learning_rate = 1e10
+        # well that works and is nice... not sure if they even use feed dicts.. but now I know how to flip activations
+        # and just generally change everything... so tht's awesome!
+        feed_dict_batch = {x: x_batch, y: y_batch, learning_rate: lr}
+        #print(dir(optimizer))
+       	#print(dir(optimizer))
+        #print(optimizer._lr_t.eval())
+        #optimizer._lr = 1e20
+        #optimizer._lr_t = tf.constant(1e20, tf.float32)
+       # optimizer._lr = 1e20 # so this does work to change the learning rate internally... which is really nice
+        # there has to be a better way thandoing this!
+        #print(optimizer._lr)
+        # let's just recreate optimizer 
+        #optimizer = tf.train.AdamOptimizer(learning_rate = 1e20) # crap... this doesn't work either!
+        # maybe I have to replace the whole train step?
+        sess.run(train_step, feed_dict=feed_dict_batch)
+        #print(optimizer._lr)
+        # this does not sem to be doing anything though... dagnabbit!
+        # okay.. none of this appears to be having any major effect... let's just recreate the optimizer each time
+        # that's awesome... I can set learning rate to be a tensor and thus stochastically mess it up!
+        # and have learning rate as a placeholder... let's try that!
         if iteration % display_freq == 0:
             # Calculate and display the batch loss and accuracy
             loss_batch, acc_batch = sess.run([loss, accuracy],
@@ -161,6 +201,9 @@ for epoch in range(epochs):
     print("Epoch: {0}, validation loss: {1:.2f}, validation accuracy: {2:.01%}".
           format(epoch + 1, loss_valid, acc_valid))
     print('---------------------------------------------------------')
+
+
+    # let's also  try stochastic learning rates!
  
 
 # set up really simple fc layer!
@@ -179,3 +222,5 @@ for epoch in range(epochs):
 # so I just need to alter the current code to account for those things and see what happens there!
 
 # let's test stochastic activations!
+# so this does seem to work... which is really nice... the learning rates are simple to achieve as well.... if I want to!
+# I just have to recreate the optimizer every single tmie... which is not ideal... but who knows!
