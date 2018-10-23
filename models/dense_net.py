@@ -6,6 +6,9 @@ from datetime import timedelta
 import numpy as np
 import tensorflow as tf
 
+try:
+    from ... import infrastructure
+
 
 TF_VERSION = float('.'.join(tf.__version__.split('.')[:2]))
 
@@ -17,7 +20,7 @@ class DenseNet:
                  should_save_logs, should_save_model,
                  renew_logs=False,
                  reduction=1.0,
-                 bc_mode=False,
+                 bc_mode=False, email_after = 20,
                  **kwargs):
         """
         Class to implement networks from this paper
@@ -56,6 +59,7 @@ class DenseNet:
         self.total_blocks = total_blocks
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
         self.bc_mode = bc_mode
+        self.email_after = email_after
         # compression rate at the transition layers
         self.reduction = reduction
         if not bc_mode:
@@ -568,6 +572,16 @@ class DenseNet:
 
             if self.should_save_model:
                 self.save_model()
+
+            # send mail with the logs add this here
+            if epoch % self.email_after == 0:
+                logs = {
+                    "loss": loss,
+                    "acc": acc,
+                    "epoch:", epoch
+                }
+                infrastructure.send_mail("Stochastic nets training logs:" , infrastructure.format_results_log(logs))
+
 
         total_training_time = time.time() - total_start_time
         print("\nTotal training time: %s" % str(timedelta(
