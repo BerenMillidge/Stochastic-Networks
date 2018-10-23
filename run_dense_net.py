@@ -168,5 +168,7 @@ if __name__ == '__main__':
         s = format_exception_log(e)
         send_mail("EXCEPTION: Stochastic Nets", s)
         log(s)
+    finally:
+        log("Shutting down experiment: " + datestring())
 
 

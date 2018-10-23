@@ -43,17 +43,17 @@ def format_results_log(results):
 		print("Did not know how to format results of type " + str(type(results)))
 		return s 
 
-
+def datestring():
+	now = datetime.datetime.now()
+	return str(now)
 
 def format_exception_log(e):
-	now = datetime.datetime.now()
-	msg = "EXCEPTION: " + str(now) + "\n"
+	msg = "EXCEPTION: " + datestring() + "\n"
 	msg = msg + str(e) + "\n"
 	return msg
 
 def format_message_string(message):
-	now = datetime.datetime.now()
-	msg = "MESSAGE: " + str(now) + "\n"
+	msg = "MESSAGE: " + datestring()+ "\n"
 	msg += str(message)
 	return message
 
