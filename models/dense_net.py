@@ -215,7 +215,7 @@ class DenseNet:
         #self.is_training = tf.placeholder(tf.bool, shape=[])
         #tf.assign(self.is_training, True)
 
-    def composite_function(self, _input, out_features, kernel_size=3):
+    def composite_function(self, _input, out_features, kernel_size=3, stochastic=False, sigma=2):
         """Function from paper H_l that performs:
         - batch normalization
         - ReLU nonlinearity
@@ -232,9 +232,15 @@ class DenseNet:
                 output, out_features=out_features, kernel_size=kernel_size)
             # dropout(in case of training and in case it is no 1.0)
             output = self.dropout(output)
+            if stochastic:
+                # add stochasticity here... not totally sure what shapes should be
+                # this should hopefully be enough for all reasonable sorts of thigns... but I don't know!
+                # could perhaps add stochasticity into the bottleneck just to see what is happening!
+                rand = tf.random_normal(output.get_shape(), tf.constant(0, tf.float32), tf.reduce_mean(output) * tf.constant(sigma, tf.float32))
+                output += rand
         return output
 
-    def bottleneck(self, _input, out_features):
+    def bottleneck(self, _input, out_features, stochastic = False, sigma=2):
         with tf.variable_scope("bottleneck"):
             output = self.batch_norm(_input)
             output = tf.nn.relu(output)
@@ -242,6 +248,9 @@ class DenseNet:
             output = self.conv2d(
                 output, out_features=inter_features, kernel_size=1,
                 padding='VALID')
+            if stochastic:
+                rand = tf.random_normal(output.get_shape(), tf.constant(0, tf.float32), tf.reduce_mean(output) * tf.constant(sigma, tf.float32))
+                output += rand
             output = self.dropout(output)
         return output
 
@@ -272,7 +281,7 @@ class DenseNet:
                 output = self.add_internal_layer(output, growth_rate)
         return output
 
-    def transition_layer(self, _input):
+    def transition_layer(self, _input, stochastic=False, sigma=2):
         """Call H_l composite function with 1x1 kernel and after average
         pooling
         """
@@ -282,6 +291,13 @@ class DenseNet:
             _input, out_features=out_features, kernel_size=1)
         # run average pooling
         output = self.avg_pool(output, k=2)
+        if stochastic:
+                rand = tf.random_normal(output.get_shape(), tf.constant(0, tf.float32), tf.reduce_mean(output) * tf.constant(sigma, tf.float32))
+                output += rand
+        # hopefully this will work... but who knows?
+        # should be sufficient to achieve both of the things I want, though not ridiculous!
+        # at least should be easy to run and test now... which is fantastic!
+        # will be easy to apply them and can run fairly straightforwardly so that is nice!
         return output
 
     def transition_layer_to_classes(self, _input):
@@ -581,17 +597,22 @@ class DenseNet:
                     "epoch:", epoch
                 }
                 infrastructure.send_mail("Stochastic nets training logs:" , infrastructure.format_results_log(logs))
+                if np.isnan(loss) or np.isnan(acc):
+                    raise ValueError('Nans detected in loss or accuracy.')
 
 
         total_training_time = time.time() - total_start_time
         print("\nTotal training time: %s" % str(timedelta(
             seconds=total_training_time)))
 
-    def train_one_epoch(self, data, batch_size, learning_rate):
+    def train_one_epoch(self, data, batch_size, learning_rate, stochastic_learning_rate=False, lr_sigma = 5):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
         num_examples = data.num_examples
         self.learning_rate = learning_rate
+        if stochastic_learning_rate:
+            #assume it's just an arbitrary number
+            self.learning_rate = np.random.normal(loc=0, size = learning_rate * lr_sigma)
         total_loss = []
         total_accuracy = []
         self.is_training = tf.constant(True, dtype=tf.bool)
@@ -612,11 +633,14 @@ class DenseNet:
         return mean_loss, mean_accuracy
 
 
-    def train_one_epoch_sdr(self, data, batch_size, learning_rate):
+    def train_one_epoch_sdr(self, data, batch_size, learning_rate, stochastic_learning_rate=False, lr_sigma=5):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
         num_examples = data.num_examples
         self.learning_rate = learning_rate
+        if stochastic_learning_rate:
+            #assume it's just an arbitrary number
+            self.learning_rate = np.random.normal(loc=0, size = learning_rate * lr_sigma)
         total_loss = []
         total_accuracy = []
         self.is_training = tf.constant(True, dtype=tf.bool)
@@ -644,6 +668,7 @@ class DenseNet:
         mean_loss = np.mean(total_loss)
         mean_accuracy = np.mean(total_accuracy)
         return mean_loss, mean_accuracy
+
 
     def test(self, data, batch_size):
         coord = tf.train.Coordinator()
