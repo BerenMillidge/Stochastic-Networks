@@ -1,11 +1,10 @@
 
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from email import *
 import datetime
 
 
-credential_file = './credentials.txt'
+credential_file = 'credentials.txt'
 credential_spliter = '$$$'
 
 f = open(credential_file, "r")

@@ -1,10 +1,6 @@
 import argparse
 
-try:
-    from infrastructure import *
-except Exception as e:
-    print("Exception in importing infrastructure")
-    print(e)
+from infrastructure import *
 
 from models.dense_net import DenseNet
 from data_providers.utils import get_data_provider_by_name
@@ -42,6 +38,7 @@ def get_train_params_by_name(name):
 
 
 if __name__ == '__main__':
+    send_mail("Starting Experiment", "Starting experiment: " + datestring())
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument(
