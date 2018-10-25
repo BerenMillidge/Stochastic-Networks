@@ -1,10 +1,11 @@
 
 import smtplib
-from email import *
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import datetime
 
 
-credential_file = 'credentials.txt'
+credential_file = './credentials.txt'
 credential_spliter = '$$$'
 
 f = open(credential_file, "r")
@@ -40,7 +41,7 @@ def format_results_log(results):
 		return s
 	else:
 		print("Did not know how to format results of type " + str(type(results)))
-		return s 
+		return str(results)
 
 def datestring():
 	now = datetime.datetime.now()
