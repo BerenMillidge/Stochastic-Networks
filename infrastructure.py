@@ -49,6 +49,14 @@ def datestring():
 	now = datetime.datetime.now()
 	return str(now)
 
+def format_traceback_exception_log(e, info, traceback):
+	msg = "EXCEPTION: " + datestring() + " "
+	msg = msg + str(e) + "\n"
+	type_, value_, tb_ = info
+	msg += str(type_) + " " + str(value_) + "\n"
+	msg += str(traceback) + "\n"
+	return msg
+
 def format_exception_log(e):
 	msg = "EXCEPTION: " + datestring() + " "
 	msg = msg + str(e) + "\n"

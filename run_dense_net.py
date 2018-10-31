@@ -4,6 +4,8 @@ from infrastructure import *
 
 from models.dense_net import DenseNet
 from data_providers.utils import get_data_provider_by_name
+import sys
+import traceback
 
 train_params_cifar = {
     'batch_size': 100,
@@ -168,9 +170,11 @@ if __name__ == '__main__':
         # this should hopefully send mail whenever there is a significant issue. Wrapping this whole thing in try-catch
         # should hopefully not cause performance issues!
         print("Exception raised while running network")
-        s = format_exception_log(e)
+        info = type_, value_, traceback_ = sys.exc_info()
+	tb = traceback.format_tb(traceback_)
+        s = format_traceback_exception_log(e, info, tb)
         send_mail("EXCEPTION: Stochastic Nets", s)
-        log(s)
+        log(s + "\n")
     finally:
         log("Shutting down experiment: " + datestring() + "\n")
     
