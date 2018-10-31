@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
         # some default params dataset/architecture related
         train_params = get_train_params_by_name(args.dataset)
-        send_mail("Starting Experiment: ", "Starting experiment: " + datestring() + "\n" + str(args) + "\n" + str(train_params) + "\n")
+        send_mail("Starting Experiment: " + str(args.exp_name), "Starting experiment: " + datestring() + "\n" + str(args) + "\n" + str(train_params) + "\n")
         print("Params:")
         for k, v in model_params.items():
             print("\t%s: %s" % (k, v))
@@ -171,9 +171,9 @@ if __name__ == '__main__':
         # should hopefully not cause performance issues!
         print("Exception raised while running network")
         info = type_, value_, traceback_ = sys.exc_info()
-	tb = traceback.format_tb(traceback_)
+        tb = traceback.format_tb(traceback_)
         s = format_traceback_exception_log(e, info, tb)
-        send_mail("EXCEPTION: Stochastic Nets", s)
+        send_mail("EXCEPTION: Stochastic Nets " + str(args.exp_name), s)
         log(s + "\n")
     finally:
         log("Shutting down experiment: " + datestring() + "\n")

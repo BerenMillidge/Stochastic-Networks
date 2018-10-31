@@ -23,6 +23,7 @@ class DenseNet:
                  bc_mode=False, email_after = 20,
 		 stochastic = False,
 		 stochastic_learning_rate = False,
+                 exp_name = "",
                  **kwargs):
         """
         Class to implement networks from this paper
@@ -62,10 +63,14 @@ class DenseNet:
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
         self.bc_mode = bc_mode
         self.email_after = email_after
-	self.stochastic = stochastic
-	self.stochastic_learning_rate = stochastic_learning_rate
+        self.stochastic = stochastic
+        self.stochastic_learning_rate = stochastic_learning_rate
+        self.base_learning_rate = 0.01
+        self.exp_name = exp_name
         # compression rate at the transition layers
         self.reduction = reduction
+        print("Exp name: " + exp_name)
+        self.logs_path_test = exp_name + "_logs.txt"
         if not bc_mode:
             print("Build %s model with %d blocks, "
                   "%d composite layers each." % (
@@ -96,9 +101,10 @@ class DenseNet:
 #        self._build_graph()
 #        self._initialize_session()
 #        self._count_trainable_params()
-	print("Initialized Model")
-	print("Stochastic: " + str(self.stochastic))
-	print("Stochastic Learning Rate: " + str(self.stochastic_learning_rate))
+        print("Initialized Model")
+        print("Stochastic: " + str(self.stochastic))
+        print("Stochastic Learning Rate: " + str(self.stochastic_learning_rate))
+	#just try a basic hack to write the logs I wnat!
 
     def _initialize_session(self):
         """Initialize session, variables, saver"""
@@ -612,14 +618,14 @@ class DenseNet:
         print("\nTotal training time: %s" % str(timedelta(
             seconds=total_training_time)))
 
-    def train_one_epoch(self, data, batch_size, learning_rate, stochastic_learning_rate=False, lr_sigma = 5):
+    def train_one_epoch(self, data, batch_size, learning_rate, stochastic_learning_rate=False, lr_sigma = 2):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
         num_examples = data.num_examples
         self.learning_rate = learning_rate
         if self.stochastic_learning_rate:
             #assume it's just an arbitrary number
-            self.learning_rate = np.random.normal(loc=0, size = learning_rate * lr_sigma)
+            self.learning_rate = np.random.normal(loc=self.base_learning_rate, size = int(learning_rate * lr_sigma))
         total_loss = []
         total_accuracy = []
         self.is_training = tf.constant(True, dtype=tf.bool)
@@ -635,8 +641,13 @@ class DenseNet:
                 self.log_loss_accuracy(
                     loss, accuracy, self.batches_step, prefix='per_batch',
                     should_print=False)
+            with open(self.logs_path_test, 'w+') as f:
+                f.write("Iteration: " + str(i) + " " + str(loss) + " " + str(accuracy) + "\n")
+
         mean_loss = np.mean(total_loss)
         mean_accuracy = np.mean(total_accuracy)
+        with open(self.logs_path_test, 'w+') as f:
+                f.write("Epoch: " + str(i) + " " + str(mean_loss) + " " + str(mean_accuracy) + "\n")
         return mean_loss, mean_accuracy
 
 
@@ -671,9 +682,14 @@ class DenseNet:
                 self.log_loss_accuracy(
                     loss, accuracy, self.batches_step, prefix='per_batch',
                     should_print=False)
+            # save my own basic logs here!
+            with open(self.logs_path_test, 'w+') as f:
+                f.write("Iteration: " + str(i) + " " + str(loss) + " " + str(accuracy) + "\n")
 
         mean_loss = np.mean(total_loss)
         mean_accuracy = np.mean(total_accuracy)
+        with open(self.logs_path_test, 'w+') as f:
+                f.write("Epoch: " + str(i) + " " + str(mean_loss) + " " + str(mean_accuracy) + "\n")
         return mean_loss, mean_accuracy
 
 
