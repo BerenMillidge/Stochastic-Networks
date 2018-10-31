@@ -7,7 +7,7 @@ from data_providers.utils import get_data_provider_by_name
 
 train_params_cifar = {
     'batch_size': 100,
-    'n_epochs': 100,
+    'n_epochs': 1,
     'initial_learning_rate': 0.1,
     'reduce_lr_epoch_1': 150,  # epochs * 0.5
     'reduce_lr_epoch_2': 225,  # epochs * 0.75
@@ -110,13 +110,13 @@ if __name__ == '__main__':
             help='Use Stochastic Delta Rule instead of dropout.')
         parser.set_defaults(use_sdr=False)
 
-	parser.add_argument('--stochastic',dest='stochastic', action='store_true', help='Run the network with stochastic activations')
-	parser.set_defaults(stochastic=False)
-	parser.add_argument('--slr', dest='stochastic_learning_rate', action='store_true', help='Run the network with a stochastic learning rate')
-	parser.set_defaults(stochastic_learning_rate = False)
+        parser.add_argument('--stochastic',dest='stochastic', action='store_true', help='Run the network with stochastic activations')
+        parser.set_defaults(stochastic=False)
+        parser.add_argument('--slr', dest='stochastic_learning_rate', action='store_true', help='Run the network with a stochastic learning rate')
+        parser.set_defaults(stochastic_learning_rate = False)
+        parser.add_argument('--exp_name', type=str, help='The name of the experiment you want')
 
         args = parser.parse_args()
-    	send_mail("Starting Experiment", "Starting experiment: " + datestring() + "\n" + str(args) + "\n")
 
         if not args.keep_prob:
             if args.dataset in ['C10', 'C100', 'SVHN']:
@@ -140,6 +140,7 @@ if __name__ == '__main__':
 
         # some default params dataset/architecture related
         train_params = get_train_params_by_name(args.dataset)
+        send_mail("Starting Experiment: ", "Starting experiment: " + datestring() + "\n" + str(args) + "\n" + str(train_params) + "\n")
         print("Params:")
         for k, v in model_params.items():
             print("\t%s: %s" % (k, v))
