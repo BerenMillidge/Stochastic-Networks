@@ -166,6 +166,7 @@ if __name__ == '__main__':
         send_mail("EXCEPTION: Stochastic Nets", s)
         log(s)
     finally:
-        log("Shutting down experiment: " + datestring())
+        log("Shutting down experiment: " + datestring() + "\n")
+    
 
 
