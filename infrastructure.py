@@ -29,7 +29,7 @@ def format_results_log(results):
 	# no obvious formatting can be applied
 	if isinstance(results, str):
 		return results_dict
-	elif hasattr(results, len):
+	elif hasattr(results, "__iter__") or hasattr(results, "__getitem__"):
 		# so it is an iterable of some sort
 		s = "Results list: \n"
 		for res in results_dict:
