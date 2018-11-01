@@ -28,18 +28,18 @@ log_file = './logs.txt'
 def format_results_log(results):
 	# no obvious formatting can be applied
 	if isinstance(results, str):
-		return results_dict
+		return results
+	elif isinstance(results, dict):
+		s = ""
+		for k,v in results.iteritems():
+			s += str(k) + ":" + str(v) + "\n"
+		return s
 	elif hasattr(results, "__iter__") or hasattr(results, "__getitem__"):
 		# so it is an iterable of some sort
 		s = "Results list: \n"
-		for res in results_dict:
-			s += res + "\n"
+		for res in results:
+			s += str(res) + "\n"
 		s += "\n"
-		return s
-	elif isinstance(results, dict):
-		s = ""
-		for k,v in results:
-			s += k + ":" + str(v) + "\n"
 		return s
 	else:
 		print("Did not know how to format results of type " + str(type(results)))
