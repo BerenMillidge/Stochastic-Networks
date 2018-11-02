@@ -31,7 +31,7 @@ def format_results_log(results):
 		return results
 	elif isinstance(results, dict):
 		s = ""
-		for k,v in results.iteritems():
+		for k,v in results.items():
 			s += str(k) + ":" + str(v) + "\n"
 		return s
 	elif hasattr(results, "__iter__") or hasattr(results, "__getitem__"):
