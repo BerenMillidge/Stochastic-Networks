@@ -17,10 +17,10 @@ class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
                  total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
-                 should_save_logs, should_save_model,
+                 should_save_logs=False, should_save_model=False,
                  renew_logs=False,
                  reduction=1.0,
-                 bc_mode=False, email_after = 20,
+                 bc_mode=False, email_after = 1,
 		 stochastic = False,
 		 stochastic_learning_rate = False,
                  exp_name = "",
@@ -69,8 +69,8 @@ class DenseNet:
         self.exp_name = exp_name
         # compression rate at the transition layers
         self.reduction = reduction
-        print("Exp name: " + exp_name)
-        self.logs_path_test = exp_name + "_logs.txt"
+        print("Exp name: " + self.exp_name)
+        self.logs_path_test = self.exp_name + "_logs.txt"
         if not bc_mode:
             print("Build %s model with %d blocks, "
                   "%d composite layers each." % (
@@ -88,9 +88,9 @@ class DenseNet:
         self.nesterov_momentum = nesterov_momentum
         self.model_type = model_type
         self.dataset_name = dataset
-        self.should_save_logs = should_save_logs
-        self.should_save_model = should_save_model
-        self.renew_logs = renew_logs
+        self.should_save_logs = False #should_save_logs
+        self.should_save_model = False # should_save_model
+        self.renew_logs = False#renew_logs
         self.batches_step = 0
         self.is_training = tf.constant(True, dtype=tf.bool)
         self.alpha = 0.05
@@ -118,13 +118,13 @@ class DenseNet:
     
             if TF_VERSION <= 0.10:
                 self.sess.run(tf.initialize_all_variables())
-                logswriter = tf.train.SummaryWriter
+                #logswriter = tf.train.SummaryWriter
             else:
                 self.sess.run(tf.global_variables_initializer())
-                logswriter = tf.summary.FileWriter
-            self.saver = tf.train.Saver()
-            self.summary_writer = logswriter(self.logs_path)
-            self.summary_writer.add_graph(self.sess.graph)
+                #logswriter = tf.summary.FileWriter
+           # self.saver = tf.train.Saver()
+            #self.summary_writer = logswriter(self.logs_path)
+            #self.summary_writer.add_graph(self.sess.graph)
 
     def _count_trainable_params(self):
         total_parameters = 0
@@ -170,7 +170,8 @@ class DenseNet:
             self.model_type, self.growth_rate, self.depth, self.dataset_name)
 
     def save_model(self, global_step=None):
-        self.saver.save(self.sess, self.save_path, global_step=global_step)
+        #self.saver.save(self.sess, self.save_path, global_step=global_step)
+        print("Tried to save model!")
 
     def load_model(self):
         try:
@@ -183,6 +184,7 @@ class DenseNet:
 
     def log_loss_accuracy(self, loss, accuracy, epoch, prefix,
                           should_print=True):
+        """
         with tf.variable_scope("summaries"):
 
             if should_print:
@@ -195,10 +197,13 @@ class DenseNet:
                     tag='accuracy_%s' % prefix, simple_value=float(accuracy))
             ])
             self.summary_writer.add_summary(summary, epoch)
+        """
+        print("Tried to save loss accuracy")
 
     def add_histograms(self, tensor):
-        with tf.variable_scope("summaries"):
-            tf.summary.histogram(tensor.name + "_hist", tensor)
+        #with tf.variable_scope("summaries"):
+            #tf.summary.histogram(tensor.name + "_hist", tensor)
+        pass
 
     def _define_inputs(self):
         shape = [self.batch_size]
@@ -585,6 +590,7 @@ class DenseNet:
 
             if self.should_save_logs:
                 self.log_loss_accuracy(loss, acc, epoch, prefix='train')
+            print("Passed save logs point!")
 
             if train_params.get('validation_set', False):
                 print("Validation...")
@@ -601,6 +607,7 @@ class DenseNet:
 
             if self.should_save_model:
                 self.save_model()
+            print("Passed model save point!")
 
             # send mail with the logs add this here
             if epoch % self.email_after == 0:
@@ -609,7 +616,7 @@ class DenseNet:
                     "acc": acc,
                     "epoch": epoch,
                 }
-                infrastructure.send_mail("Stochastic nets training logs:" , infrastructure.format_results_log(logs))
+                infrastructure.send_mail(str(self.exp_name) + " training logs:" , infrastructure.format_results_log(logs))
                 if np.isnan(loss) or np.isnan(acc):
                     raise ValueError('Nans detected in loss or accuracy.')
 
@@ -641,12 +648,12 @@ class DenseNet:
                 self.log_loss_accuracy(
                     loss, accuracy, self.batches_step, prefix='per_batch',
                     should_print=False)
-            with open(self.logs_path_test, 'w+') as f:
+            with open(self.logs_path_test, 'a+') as f:
                 f.write("Iteration: " + str(i) + " " + str(loss) + " " + str(accuracy) + "\n")
 
         mean_loss = np.mean(total_loss)
         mean_accuracy = np.mean(total_accuracy)
-        with open(self.logs_path_test, 'w+') as f:
+        with open(self.logs_path_test, 'a+') as f:
                 f.write("Epoch: " + str(i) + " " + str(mean_loss) + " " + str(mean_accuracy) + "\n")
         return mean_loss, mean_accuracy
 
@@ -683,12 +690,12 @@ class DenseNet:
                     loss, accuracy, self.batches_step, prefix='per_batch',
                     should_print=False)
             # save my own basic logs here!
-            with open(self.logs_path_test, 'w+') as f:
+            with open(self.logs_path_test, 'a+') as f:
                 f.write("Iteration: " + str(i) + " " + str(loss) + " " + str(accuracy) + "\n")
 
         mean_loss = np.mean(total_loss)
         mean_accuracy = np.mean(total_accuracy)
-        with open(self.logs_path_test, 'w+') as f:
+        with open(self.logs_path_test, 'a+') as f:
                 f.write("Epoch: " + str(i) + " " + str(mean_loss) + " " + str(mean_accuracy) + "\n")
         return mean_loss, mean_accuracy
 
@@ -718,4 +725,5 @@ class DenseNet:
         self.images = train_images
         self.labels = train_labels
         self.is_training = tf.constant(True, dtype=tf.bool)
+        print("Finished test function!")
         return mean_loss, mean_accuracy
